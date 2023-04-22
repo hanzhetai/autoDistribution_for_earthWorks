@@ -100,31 +100,32 @@ class inputTransform:
         self.total_embankment = paved_embankment + unpaved_embankment
 
         # variables reduction (further update should be working on with H_array, instead of changing P/Q directly)
-        for i in range(len(self.total_embankment)):
-            if self.total_embankment[i] < self.N_matrix[i]:
-                # 余方区不需要外借土源，对应的值归0
-                self.initial_Epsilon_for_pavedArea_matrix[i] = 0
-                self.initial_Epsilon_for_unPavedArea_matrix[i] = 0
-            else:
-                # 其余的区域为缺方区，优先供应本区的土方，因此其余列的值归0
-                self.initial_P_matrix[i, :] = 0
-                self.initial_Q_matrix[i, :] = 0
-
-                # 恢复缺方区的求解值(为简化代码的中间过程)
-                self.initial_P_matrix[i, i] = 1
-                self.initial_Q_matrix[i, i] = 1
-                # 对于缺方区，优先满足本区土基区的土方
-                # 判断本区挖方是否恰好满足本区填方
-                if self.total_embankment[i] == self.N_matrix[i]:
-                    # 对应的epsilon归零
-                    self.initial_Epsilon_for_pavedArea_matrix[i] = 0
-                    self.initial_Epsilon_for_unPavedArea_matrix[i] = 0
-            if self.earth_treatment_index:
-                for section_Index in self.earth_treatment_index:
-                    # output from base treatment area should not be used in paved area
-                    self.initial_P_matrix[section_Index, :] = 0
-                    # output from base treatment area used in unpaved area should not be used by itself
-                    self.initial_Q_matrix[section_Index, section_Index] = 0
+        # comment out for now, may conflict with base treatment rule
+        # for i in range(len(self.total_embankment)):
+        #     if self.total_embankment[i] < self.N_matrix[i]:
+        #         # 余方区不需要外借土源，对应的值归0
+        #         self.initial_Epsilon_for_pavedArea_matrix[i] = 0
+        #         self.initial_Epsilon_for_unPavedArea_matrix[i] = 0
+        #     else:
+        #         # 其余的区域为缺方区，优先供应本区的土方，因此其余列的值归0
+        #         self.initial_P_matrix[i, :] = 0
+        #         self.initial_Q_matrix[i, :] = 0
+        #
+        #         # 恢复缺方区的求解值(为简化代码的中间过程)
+        #         self.initial_P_matrix[i, i] = 1
+        #         self.initial_Q_matrix[i, i] = 1
+        #         # 对于缺方区，优先满足本区土基区的土方
+        #         # 判断本区挖方是否恰好满足本区填方
+        #         if self.total_embankment[i] == self.N_matrix[i]:
+        #             # 对应的epsilon归零
+        #             self.initial_Epsilon_for_pavedArea_matrix[i] = 0
+        #             self.initial_Epsilon_for_unPavedArea_matrix[i] = 0
+        if self.earth_treatment_index:
+            for section_Index in self.earth_treatment_index:
+                # output from base treatment area should not be used in paved area
+                self.initial_P_matrix[section_Index, :] = 0
+                # output from base treatment area used in unpaved area should not be used by itself
+                self.initial_Q_matrix[section_Index, section_Index] = 0
 
     def P_coefficient_matrix(self):
         distribution_by_exterior_resource = np.array([self.initial_Epsilon_for_pavedArea_matrix * self.phi_0],
