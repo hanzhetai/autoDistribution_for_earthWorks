@@ -31,7 +31,7 @@ class inputTransform:
         # 外借土方土面区填挖比theta_0参数
         self.theta_0 = 0.88
         # 地基处理子项位于第几行
-        self.earth_treatment_index = 5
+        self.earth_treatment_index = [2, ]
         # 不得外借土方的标段
         self.prohibited_section = []
         # 设置借方(尽可能设置大值)
@@ -39,47 +39,47 @@ class inputTransform:
 
         with open(self.path_L, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.L_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.L_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载距离权重L_exterior矩阵
         with open(self.path_L_exterior, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.L_exterior_list = tmp[0:].astype(np.float64)  # 加载数据部
+            self.L_exterior_list = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载人为因素H矩阵
         with open(self.path_H, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.H_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.H_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载人为因素H_exterior矩阵
         with open(self.path_H_exterior, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.H_exterior_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.H_exterior_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载土基区填挖比phi矩阵
         with open(self.path_phi, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.phi_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.phi_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载土面区填挖比theta矩阵
         with open(self.path_theta, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.theta_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.theta_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载土基区填方F矩阵
         with open(self.path_F, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.F_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.F_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载土面区填方D矩阵
         with open(self.path_D, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.D_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.D_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 加载挖方N矩阵
         with open(self.path_N, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.N_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.N_matrix = tmp[0:].astype(np.float)  # 加载数据部
 
         # 依照L的长度判断分区数量
         self.sec_num = len(self.L_matrix.tolist())
@@ -91,7 +91,7 @@ class inputTransform:
         self.initial_Epsilon_for_unPavedArea_matrix = np.ones(self.F_matrix.shape)
 
         # 判断借方区及填方区
-        # get diagonal ratio for embankment_area
+        # get self ratio for embankment_area
         phi_diagnoal = self.phi_matrix.diagonal()
         theta_diagnoal = self.theta_matrix.diagonal()
 
@@ -99,7 +99,7 @@ class inputTransform:
         unpaved_embankment = np.multiply(self.D_matrix, theta_diagnoal)
         self.total_embankment = paved_embankment + unpaved_embankment
 
-        # 变量约减(尚未考虑地基处理区的约减与修正，后续补充)
+        # variables reduction (further update should be working on with H_array, instead of changing P/Q directly)
         for i in range(len(self.total_embankment)):
             if self.total_embankment[i] < self.N_matrix[i]:
                 # 余方区不需要外借土源，对应的值归0
@@ -119,6 +119,12 @@ class inputTransform:
                     # 对应的epsilon归零
                     self.initial_Epsilon_for_pavedArea_matrix[i] = 0
                     self.initial_Epsilon_for_unPavedArea_matrix[i] = 0
+            if self.earth_treatment_index:
+                for section_Index in self.earth_treatment_index:
+                    # output from base treatment area should not be used in paved area
+                    self.initial_P_matrix[section_Index, :] = 0
+                    # output from base treatment area used in unpaved area should not be used by itself
+                    self.initial_Q_matrix[section_Index, section_Index] = 0
 
     def P_coefficient_matrix(self):
         distribution_by_exterior_resource = np.array([self.initial_Epsilon_for_pavedArea_matrix * self.phi_0],
