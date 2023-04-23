@@ -31,55 +31,55 @@ class inputTransform:
         # 外借土方土面区填挖比theta_0参数
         self.theta_0 = 0.88
         # 地基处理子项位于第几行
-        self.earth_treatment_index = [2, ]
+        self.earth_treatment_index = []
         # 不得外借土方的标段
         self.prohibited_section = []
         # 设置借方(尽可能设置大值)
-        self.exterior_inport = 900
+        self.exterior_inport = 39000000
 
         with open(self.path_L, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.L_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.L_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载距离权重L_exterior矩阵
         with open(self.path_L_exterior, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.L_exterior_list = tmp[0:].astype(np.float)  # 加载数据部
+            self.L_exterior_list = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载人为因素H矩阵
         with open(self.path_H, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.H_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.H_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载人为因素H_exterior矩阵
         with open(self.path_H_exterior, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.H_exterior_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.H_exterior_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载土基区填挖比phi矩阵
         with open(self.path_phi, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.phi_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.phi_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载土面区填挖比theta矩阵
         with open(self.path_theta, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.theta_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.theta_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载土基区填方F矩阵
         with open(self.path_F, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.F_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.F_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载土面区填方D矩阵
         with open(self.path_D, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.D_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.D_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 加载挖方N矩阵
         with open(self.path_N, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.N_matrix = tmp[0:].astype(np.float)  # 加载数据部
+            self.N_matrix = tmp[0:].astype(np.float64)  # 加载数据部
 
         # 依照L的长度判断分区数量
         self.sec_num = len(self.L_matrix.tolist())
@@ -190,7 +190,6 @@ class inputTransform:
         embankment_constraints_coefficients_on_pavedArea = np.hstack((embankment_constraints_coefficients_on_pavedArea,
                                                                       embankment_constraints_coefficients_on_unPavedArea_with_Zeros))
 
-        print(embankment_constraints_coefficients_on_pavedArea)
         costraints_coefficients_list = []
         for i in range(0, len_of_instance):
             coefficients_matrix = np.copy(embankment_constraints_coefficients_on_pavedArea)
@@ -210,7 +209,6 @@ class inputTransform:
                                                                        embankment_constraints_coefficients_on_unPavedArea))
         end_of_instance = len(embankment_constraints_coefficients_on_unPavedArea[0])
 
-        print(embankment_constraints_coefficients_on_unPavedArea)
         costraints_coefficients_list = []
         for i in range(init_of_instance, end_of_instance):
             coefficients_matrix = np.copy(embankment_constraints_coefficients_on_unPavedArea)
@@ -228,7 +226,6 @@ class inputTransform:
 
         combine_excavation_constraints = np.hstack(
             (excavation_constraints_coefficients_on_pavedArea, excavation_constraints_coefficients_on_unPavedArea))
-        print(combine_excavation_constraints)
 
         costraints_coefficients_list = []
         len_of_instance = len(combine_excavation_constraints)
@@ -340,6 +337,8 @@ def dual_simplex(c, A, b):
                                  if tableau[i, pivot_col] > 0])
 
         if valid_ratios.size == 0:
+            print('pivot_row',pivot_row)
+            print('pivot_col',pivot_col)
             raise ValueError("Problem is unbounded.")
 
         pivot_row = valid_ratios[np.argmin(valid_ratios[:, 1]), 0].astype(int)
@@ -420,7 +419,7 @@ def dual_simplex(c, A, b):
 
                 tableau[i] -= tableau[pivot_row] * tableau[i, pivot_col]
 
-                # #############for display only !!!!
+                #############for display only !!!!
                 # # Highlight Row
                 # print(f'HIGHTLIGHT_ROW {i} _TO_FIT_PIVOT_ROW {pivot_row}')
                 # highlight_row = pivot_row
@@ -443,21 +442,45 @@ def dual_simplex(c, A, b):
     # print(f'final result\n{tableau}')
     solution_row = tableau[-1]
     optimal_value = solution_row[-1]
-    var_num = len(A_dual[0])
-    solution = solution_row[var_num: -1]
+    var_index_init = len(A_dual[0])
+    # default set slack varibales connected to excavation inequality constraints and exterior input inequality constraints
+    slack_num = int((var_index_init-1)/3) + 1
+    print('var_index_init', var_index_init)
+    print('slack num', slack_num)
+    solution = solution_row[var_index_init : -slack_num-1]
     return optimal_value, solution
 
 #create instance
 my_instance = inputTransform()
 
-#load data
-c = my_instance.combine_objective()
-A = my_instance.combine_constraints_coefficients()
-b = my_instance.combine_constraints()
-
-#output the results
+#get_num_of_create instance
 num_of_instance = len(my_instance.P_coefficient_matrix())
 
+#load data from instance
+c = my_instance.combine_objective()
+A = my_instance.combine_constraints_coefficients()
+
+# introduce slack_variables
+slack_variables_matrix = np.eye(A.shape[0])
+
+for i in range(len(A)):
+    if (i >= (num_of_instance-1)*2):
+        slack_variables_matrix[i] = slack_variables_matrix[i] * (-1)
+slack_variables_matrix = slack_variables_matrix[:,(num_of_instance-1)*2 :]
+
+print('slack_variables_matrix',slack_variables_matrix)
+
+# expand A matrix
+A = np.hstack((A, slack_variables_matrix))
+
+# introduce slack variables coefficients of zeros
+slack_variables_coefficients = np.zeros((len(slack_variables_matrix[0]),))
+# expand c array
+c = np.hstack((c, slack_variables_coefficients))
+
+b = my_instance.combine_constraints()
+
+# output results
 optimal_value, solution = dual_simplex(c, A, b)
 print("Optimal value:", optimal_value)
 
