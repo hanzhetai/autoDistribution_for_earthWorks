@@ -448,7 +448,8 @@ A = np.hstack((A, slack_variables_matrix))
 
 # introduce slack variables coefficients of zeros
 slack_variables_coefficients = np.ones((len(slack_variables_matrix[0]),))*40
-slack_variables_coefficients[-1] = 1
+# set coefficient for slack variable of exterior source as 0
+slack_variables_coefficients[-1] = 0
 
 # expand c array
 c = np.hstack((c, slack_variables_coefficients))
