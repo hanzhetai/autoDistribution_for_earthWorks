@@ -2,8 +2,7 @@ import numpy as np
 import math
 
 #显示设置
-np.set_printoptions(linewidth=1000)
-
+np.set_printoptions(linewidth=10000)
 
 class inputTransform:
     def __init__(self):
@@ -35,7 +34,7 @@ class inputTransform:
         # 不得外借土方的标段
         self.prohibited_section = []
         # 设置借方(尽可能设置大值)
-        self.exterior_inport = 39000000
+        self.exterior_inport = 1400
 
         with open(self.path_L, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
@@ -99,27 +98,6 @@ class inputTransform:
         unpaved_embankment = np.multiply(self.D_matrix, theta_diagnoal)
         self.total_embankment = paved_embankment + unpaved_embankment
 
-        # variables reduction (further update should be working on with H_array, instead of changing P/Q directly)
-        # comment out for now, may conflict with base treatment rule
-        # for i in range(len(self.total_embankment)):
-        #     if self.total_embankment[i] < self.N_matrix[i]:
-        #         # 余方区不需要外借土源，对应的值归0
-        #         self.initial_Epsilon_for_pavedArea_matrix[i] = 0
-        #         self.initial_Epsilon_for_unPavedArea_matrix[i] = 0
-        #     else:
-        #         # 其余的区域为缺方区，优先供应本区的土方，因此其余列的值归0
-        #         self.initial_P_matrix[i, :] = 0
-        #         self.initial_Q_matrix[i, :] = 0
-        #
-        #         # 恢复缺方区的求解值(为简化代码的中间过程)
-        #         self.initial_P_matrix[i, i] = 1
-        #         self.initial_Q_matrix[i, i] = 1
-        #         # 对于缺方区，优先满足本区土基区的土方
-        #         # 判断本区挖方是否恰好满足本区填方
-        #         if self.total_embankment[i] == self.N_matrix[i]:
-        #             # 对应的epsilon归零
-        #             self.initial_Epsilon_for_pavedArea_matrix[i] = 0
-        #             self.initial_Epsilon_for_unPavedArea_matrix[i] = 0
         if self.earth_treatment_index:
             for section_Index in self.earth_treatment_index:
                 # output from base treatment area should not be used in paved area
@@ -133,12 +111,6 @@ class inputTransform:
                                                      dtype=float)
         restricted_by_H = self.initial_P_matrix * self.H_matrix
         combined_array = np.vstack((restricted_by_H * self.phi_matrix, distribution_by_exterior_resource))
-        # 生成一列数值均为0的array，代表外借土源的系数
-        extend_column = np.zeros((combined_array.shape[0], 1))
-        # 将该array添加于matrix的右侧，代表各区向该区域调配的土方，由于该列代表外借土源，因此默认调往该区的土方为0
-        combined_array = np.concatenate((combined_array, extend_column), axis=1)
-        len_of_instance = len(combined_array[0])
-        combined_array = combined_array[:, :len_of_instance - 1]
         return combined_array
 
     def Q_coefficient_matrix(self):
@@ -146,18 +118,12 @@ class inputTransform:
                                                      dtype=float)
         restricted_by_H = self.initial_Q_matrix * self.H_matrix
         combined_array = np.vstack((restricted_by_H * self.theta_matrix, distribution_by_exterior_resource))
-        # 生成一列数值均为0的array，代表外借土源的系数
-        extend_column = np.zeros((combined_array.shape[0], 1))
-        # 将该array添加于matrix的右侧，代表各区向该区域调配的土方，由于该列代表外借土源，因此默认调往该区的土方为0
-        combined_array = np.concatenate((combined_array, extend_column), axis=1)
-        len_of_instance = len(combined_array[0])
-        combined_array = combined_array[:, :len_of_instance - 1]
         return combined_array
 
     def H_matrix_refit(self):
         H_matrix_refit = np.copy(self.H_matrix)
         update_row = np.ones((1, H_matrix_refit.shape[1]))
-        update_row[0, -1] = 0
+        update_row[0, -1] = 1
         if self.prohibited_section:
             for sec in self.prohibited_section:
                 update_row[0, int(sec)] = 0
@@ -422,7 +388,7 @@ def dual_simplex(c, A, b):
 
                 tableau[i] -= tableau[pivot_row] * tableau[i, pivot_col]
 
-                #############for display only !!!!
+                # ############for display only !!!!
                 # # Highlight Row
                 # print(f'HIGHTLIGHT_ROW {i} _TO_FIT_PIVOT_ROW {pivot_row}')
                 # highlight_row = pivot_row
@@ -468,27 +434,28 @@ slack_variables_matrix = np.eye(A.shape[0])
 
 for i in range(len(A)):
     if (i >= (num_of_instance-1)*2):
-        slack_variables_matrix[i] = slack_variables_matrix[i] * (-1)
+        slack_variables_matrix[i] = slack_variables_matrix[i]
 slack_variables_matrix = slack_variables_matrix[:,(num_of_instance-1)*2 :]
-
-print('slack_variables_matrix',slack_variables_matrix)
 
 # expand A matrix
 A = np.hstack((A, slack_variables_matrix))
 
 # introduce slack variables coefficients of zeros
-slack_variables_coefficients = np.zeros((len(slack_variables_matrix[0]),))
+slack_variables_coefficients = np.ones((len(slack_variables_matrix[0]),))*40
+slack_variables_coefficients[-1] = 1
+
 # expand c array
 c = np.hstack((c, slack_variables_coefficients))
 
 b = my_instance.combine_constraints()
 
-# output results
+#输出调配方式
 optimal_value, solution = dual_simplex(c, A, b)
 print("Optimal value:", optimal_value)
 
 solution_reshape = solution.reshape(num_of_instance,(num_of_instance-1)*2 )
 print(f"Solution: \n {solution_reshape}")
+np.savetxt(r"D:\testSample_autoDistribution\solution.csv", solution_reshape, delimiter=",")
 
 paved_solution = solution_reshape[:, :num_of_instance-1]
 print(f"Paved_Solution: \n {paved_solution}")
