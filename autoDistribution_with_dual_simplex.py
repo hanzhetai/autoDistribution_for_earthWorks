@@ -447,17 +447,27 @@ def dual_simplex(c, A, b):
     solution = solution_row[var_num: -1]
     return optimal_value, solution
 
-#创建实例
+#create instance
 my_instance = inputTransform()
 
-#Step1: 计算道面区填筑
+#load data
 c = my_instance.combine_objective()
 A = my_instance.combine_constraints_coefficients()
 b = my_instance.combine_constraints()
 
-#输出道面区调配方式
+#output the results
 num_of_instance = len(my_instance.P_coefficient_matrix())
 
-paved_optimal_value, paved_solution = dual_simplex(c, A, b)
-print("Optimal value:", paved_optimal_value)
-print(f"Solution: \n {paved_solution.reshape(num_of_instance,(num_of_instance-1)*2 )}")
+optimal_value, solution = dual_simplex(c, A, b)
+print("Optimal value:", optimal_value)
+
+solution_reshape = solution.reshape(num_of_instance,(num_of_instance-1)*2 )
+print(f"Solution: \n {solution_reshape}")
+
+paved_solution = solution_reshape[:, :num_of_instance-1]
+print(f"Paved_Solution: \n {paved_solution}")
+np.savetxt(r"D:\testSample_autoDistribution\paved_solution.csv", paved_solution, delimiter=",")
+
+unpaved_solution = solution_reshape[:, num_of_instance-1:]
+print(f"unPaved_Solution: \n {unpaved_solution}")
+np.savetxt(r"D:\testSample_autoDistribution\unpaved_solution.csv", unpaved_solution, delimiter=",")
