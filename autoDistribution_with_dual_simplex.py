@@ -125,12 +125,14 @@ class inputTransform:
                 # output from base treatment area should not be used in paved area
                 self.initial_P_matrix[section_Index, :] = 0
                 # output from base treatment area used in unpaved area should not be used by itself
-                self.initial_Q_matrix[section_Index, section_Index] = 0
+                for section_col_index in self.earth_treatment_index:
+                    self.initial_Q_matrix[section_Index, section_col_index] = 0
 
     def P_coefficient_matrix(self):
         distribution_by_exterior_resource = np.array([self.initial_Epsilon_for_pavedArea_matrix * self.phi_0],
                                                      dtype=float)
-        combined_array = np.vstack((self.initial_P_matrix * self.phi_matrix, distribution_by_exterior_resource))
+        restricted_by_H = self.initial_P_matrix * self.H_matrix
+        combined_array = np.vstack((restricted_by_H * self.phi_matrix, distribution_by_exterior_resource))
         # 生成一列数值均为0的array，代表外借土源的系数
         extend_column = np.zeros((combined_array.shape[0], 1))
         # 将该array添加于matrix的右侧，代表各区向该区域调配的土方，由于该列代表外借土源，因此默认调往该区的土方为0
@@ -142,7 +144,8 @@ class inputTransform:
     def Q_coefficient_matrix(self):
         distribution_by_exterior_resource = np.array(self.initial_Epsilon_for_unPavedArea_matrix * self.theta_0,
                                                      dtype=float)
-        combined_array = np.vstack((self.initial_Q_matrix * self.theta_matrix, distribution_by_exterior_resource))
+        restricted_by_H = self.initial_Q_matrix * self.H_matrix
+        combined_array = np.vstack((restricted_by_H * self.theta_matrix, distribution_by_exterior_resource))
         # 生成一列数值均为0的array，代表外借土源的系数
         extend_column = np.zeros((combined_array.shape[0], 1))
         # 将该array添加于matrix的右侧，代表各区向该区域调配的土方，由于该列代表外借土源，因此默认调往该区的土方为0
