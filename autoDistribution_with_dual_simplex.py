@@ -34,7 +34,7 @@ class inputTransform:
         # 不得外借土方的标段
         self.prohibited_section = []
         # 设置借方(尽可能设置大值)
-        self.exterior_inport = 500000000000
+        self.exterior_inport = 10000
 
         with open(self.path_L, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
@@ -123,7 +123,6 @@ class inputTransform:
     def H_matrix_refit(self):
         H_matrix_refit = np.copy(self.H_matrix)
         update_row = np.ones((1, H_matrix_refit.shape[1]))
-        update_row[0, -1] = 1
         if self.prohibited_section:
             for sec in self.prohibited_section:
                 update_row[0, int(sec)] = 0
@@ -250,20 +249,29 @@ class inputTransform:
     def objective_embankment_on_pavedArea(self):
         L_matrix = np.copy(self.L_matrix_refit())
         H_matrix = np.copy(self.H_matrix_refit())
-        objective_embankment_on_pavedArea = L_matrix * H_matrix
+        objective_embankment_on_pavedArea = L_matrix[:-1] * H_matrix[:-1]
         constraints_flat = [elem for row in objective_embankment_on_pavedArea for elem in row]
         return np.array(constraints_flat, dtype=float)
 
     def objective_embankment_on_unPavedArea(self):
         L_matrix = np.copy(self.L_matrix_refit())
         H_matrix = np.copy(self.H_matrix_refit())
-        objective_embankment_on_pavedArea = L_matrix * H_matrix
+        objective_embankment_on_pavedArea = L_matrix[:-1] * H_matrix[:-1]
         constraints_flat = [elem for row in objective_embankment_on_pavedArea for elem in row]
         return np.array(constraints_flat, dtype=float)
 
+    def objective_embankment_source_exterior(self):
+        L_matrix = np.copy(self.L_matrix_refit())
+        H_matrix = np.copy(self.H_matrix_refit())
+        objective_embankment_source_exterior = L_matrix[-1] * H_matrix[-1]
+        return objective_embankment_source_exterior
+
     def combine_objective(self):
         combine_objective = np.hstack((inputTransform.objective_embankment_on_pavedArea(self),
-                                       inputTransform.objective_embankment_on_unPavedArea(self)))
+                                       inputTransform.objective_embankment_on_unPavedArea(self),
+                                       inputTransform.objective_embankment_source_exterior(self),
+                                       inputTransform.objective_embankment_source_exterior(self),
+                                       ))
         return combine_objective
 
 
@@ -306,8 +314,6 @@ def dual_simplex(c, A, b):
                                  if tableau[i, pivot_col] > 0])
 
         if valid_ratios.size == 0:
-            print('pivot_row',pivot_row)
-            print('pivot_col',pivot_col)
             raise ValueError("Problem is unbounded.")
 
         pivot_row = valid_ratios[np.argmin(valid_ratios[:, 1]), 0].astype(int)
@@ -428,7 +434,7 @@ num_of_instance = len(my_instance.P_coefficient_matrix())
 #load data from instance
 c = my_instance.combine_objective()
 A = my_instance.combine_constraints_coefficients()
-
+print('check C', c)
 # introduce slack_variables
 slack_variables_matrix = np.eye(A.shape[0])
 
