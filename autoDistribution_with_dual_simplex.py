@@ -34,7 +34,7 @@ class inputTransform:
         # 不得外借土方的标段
         self.prohibited_section = []
         # 设置借方(尽可能设置大值)
-        self.exterior_inport = 1400
+        self.exterior_inport = 500000000000
 
         with open(self.path_L, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
@@ -434,7 +434,7 @@ slack_variables_matrix = np.eye(A.shape[0])
 
 for i in range(len(A)):
     if (i >= (num_of_instance-1)*2):
-        slack_variables_matrix[i] = slack_variables_matrix[i]
+        slack_variables_matrix[i] = slack_variables_matrix[i] * (-1)
 slack_variables_matrix = slack_variables_matrix[:,(num_of_instance-1)*2 :]
 
 # expand A matrix
@@ -449,7 +449,7 @@ c = np.hstack((c, slack_variables_coefficients))
 
 b = my_instance.combine_constraints()
 
-#输出调配方式
+#output
 optimal_value, solution = dual_simplex(c, A, b)
 print("Optimal value:", optimal_value)
 
