@@ -1,84 +1,85 @@
 import numpy as np
 import math
 
-#显示设置
+# 显示设置
 np.set_printoptions(linewidth=10000)
+
 
 class inputTransform:
     def __init__(self):
-        # 输入常量
-        # 距离权重L矩阵
+        # L_array, length of routes between sections
         self.path_L = r'D:\testSample_autoDistribution\L_array.csv'
-        # 距离权重L_exterior矩阵
+        # L_exterior_array, length of routes from outside earthworkds sources to each section
         self.path_L_exterior = r'D:\testSample_autoDistribution\L_exterior_array.csv'
-        # 人为因素H_exterior矩阵
+        # H_exterior_array, human factors, represents the import willingness for each section, set 0 if you wanted to probhit the specific section from importing earthworks from outside
         self.path_H_exterior = r'D:\testSample_autoDistribution\H_exterior_array.csv'
-        # 人为因素H矩阵
+        # H_array, human factors, represents the willingness for sections to interchange resources, set 0 if you wanted to probhit sections from exporting eathworks to the specific one
         self.path_H = r'D:\testSample_autoDistribution\H_array.csv'
-        # 土基区填挖比phi矩阵
+        # phi_array, represents the fill/cut factor in paved area
         self.path_phi = r'D:\testSample_autoDistribution\phi_array.csv'
-        # 土面区填挖比theta矩阵
+        # theta_array, represents the fill/cut factor in unpaved area
         self.path_theta = r'D:\testSample_autoDistribution\theta_array.csv'
-        # 土基区填方F矩阵
+        # F_array, represents the embankment quantity of earthworks in paved area for each section
         self.path_F = r'D:\testSample_autoDistribution\F_array.csv'
-        # 土面区填方D矩阵
+        # D_array, represents the embankment quantity of earthworks in unpaved area for each section
         self.path_D = r'D:\testSample_autoDistribution\D_array.csv'
-        # 挖方N矩阵
+        # N_array, represents the excavation quantity of earthworks for each section
         self.path_N = r'D:\testSample_autoDistribution\N_array.csv'
-        # 外借土方土基区填挖比phi_0参数
+        # theta_0 factor, represents the fill/cut factor in paved area when using exterior earthworks
         self.phi_0 = 0.9
-        # 外借土方土面区填挖比theta_0参数
+        # theta_0 factor, represents the fill/cut factor in unpaved area when using exterior earthworks
         self.theta_0 = 0.9
-        # 地基处理子项位于第几行
-        self.earth_treatment_index = [4,11,18,25,32,39,46]
-        # 不得外借土方的标段
+        # indexes in the list represent the indexes of the base treatment section
+        self.earth_treatment_index = [4, 11, 18, 25, 32, 39, 46]
+        # put index here if you want to prohibit the section from receiving exterior earthworks
         self.prohibited_section = []
-        # 设置借方(尽可能设置大值)
-        self.exterior_inport = 10000000
+        # set the default earthworks source quantity, will fix to an auto default value by sum the F and N
+        self.exterior_import = 10000000
 
+        # 加载距离权重L矩阵 (L_array, length of routes between sections)
         with open(self.path_L, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.L_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.L_matrix = tmp[0:].astype(np.float64)
 
-        # 加载距离权重L_exterior矩阵
+        # 加载距离权重L_exterior矩阵 (L_exterior_array, length of routes from outside earthworkds sources to each section)
         with open(self.path_L_exterior, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.L_exterior_list = tmp[0:].astype(np.float64)  # 加载数据部
+            self.L_exterior_list = tmp[0:].astype(np.float64)
 
-        # 加载人为因素H矩阵
+        # 加载人为因素H矩阵 (H_array, human factors, represents the willingness for sections to interchange resources, set 0 if you wanted to probhit sections from exporting eathworks to the specific one)
         with open(self.path_H, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.H_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.H_matrix = tmp[0:].astype(np.float64)
 
-        # 加载人为因素H_exterior矩阵
+        # 加载人为因素H_exterior矩阵 (H_exterior_array, human factors, represents the import willingness for each section, set 0 if you wanted to probhit the specific section from importing earthworks from outside)
         with open(self.path_H_exterior, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.H_exterior_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.H_exterior_matrix = tmp[0:].astype(np.float64)
 
-        # 加载土基区填挖比phi矩阵
+        # 加载土基区填挖比phi矩阵 (phi_array, represents the fill/cut factor in paved area)
         with open(self.path_phi, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.phi_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.phi_matrix = tmp[0:].astype(np.float64)
 
-        # 加载土面区填挖比theta矩阵
+        # 加载土面区填挖比theta矩阵 (theta_array, represents the fill/cut factor in unpaved area)
         with open(self.path_theta, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.theta_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.theta_matrix = tmp[0:].astype(np.float64)
 
-        # 加载土基区填方F矩阵
+        # 加载土基区填方F矩阵 (F_array, represents the embankment quantity of earthworks in paved area for each section)
         with open(self.path_F, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.F_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.F_matrix = tmp[0:].astype(np.float64)
 
-        # 加载土面区填方D矩阵
+        # 加载土面区填方D矩阵 (D_array, represents the embankment quantity of earthworks in unpaved area for each section)
         with open(self.path_D, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.D_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.D_matrix = tmp[0:].astype(np.float64)
 
-        # 加载挖方N矩阵
+        # 加载挖方N矩阵 (N_array, represents the excavation quantity of earthworks for each section)
         with open(self.path_N, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
-            self.N_matrix = tmp[0:].astype(np.float64)  # 加载数据部
+            self.N_matrix = tmp[0:].astype(np.float64)
 
         # 依照L的长度判断分区数量
         self.sec_num = len(self.L_matrix.tolist())
@@ -148,7 +149,6 @@ class inputTransform:
         array_flat = [elem for row in array for elem in row]
         return array_flat
 
-    # Refit II
     def embankment_constraints_coefficients_on_pavedArea(self):
         embankment_constraints_coefficients_on_pavedArea = np.copy(self.P_coefficient_matrix())
         len_of_instance = len(embankment_constraints_coefficients_on_pavedArea[0])
@@ -165,7 +165,6 @@ class inputTransform:
             costraints_coefficients_list.append(focused)
         return np.array(costraints_coefficients_list, dtype=float)
 
-    # Refit II
     def embankment_constraints_coefficients_on_unPavedArea(self):
         embankment_constraints_coefficients_on_unPavedArea = np.copy(self.Q_coefficient_matrix())
         init_of_instance = len(embankment_constraints_coefficients_on_unPavedArea[0])
@@ -173,8 +172,8 @@ class inputTransform:
         embankment_constraints_coefficients_on_pavedArea_with_Zeros = np.zeros(
             embankment_constraints_coefficients_on_unPavedArea.shape)
         embankment_constraints_coefficients_on_unPavedArea = np.hstack((
-                                                                       embankment_constraints_coefficients_on_pavedArea_with_Zeros,
-                                                                       embankment_constraints_coefficients_on_unPavedArea))
+            embankment_constraints_coefficients_on_pavedArea_with_Zeros,
+            embankment_constraints_coefficients_on_unPavedArea))
         end_of_instance = len(embankment_constraints_coefficients_on_unPavedArea[0])
 
         costraints_coefficients_list = []
@@ -184,7 +183,6 @@ class inputTransform:
             costraints_coefficients_list.append(focused)
         return np.array(costraints_coefficients_list, dtype=float)
 
-    # Refit II
     def excavation_constraints_coefficients(self):
         excavation_constraints_coefficients_on_pavedArea = np.copy(self.P_coefficient_matrix())
         excavation_constraints_coefficients_on_pavedArea[excavation_constraints_coefficients_on_pavedArea != 0] = -1
@@ -204,7 +202,7 @@ class inputTransform:
             costraints_coefficients_list.append(focused)
         return np.array(costraints_coefficients_list, dtype=float)
 
-    # coefficients A matrix !!!!!
+    # coefficients matrix A
     def combine_constraints_coefficients(self):
         combine_constraints_coefficients = np.vstack(
             (inputTransform.embankment_constraints_coefficients_on_pavedArea(self), \
@@ -214,12 +212,10 @@ class inputTransform:
         )
         return combine_constraints_coefficients
 
-    # Refit
     def embankment_constraints_on_pavedArea(self):
         F_array = np.copy(self.F_matrix)
         return F_array
 
-    # Refit
     def embankment_constraints_on_unPavedArea(self):
         D_array = np.copy(self.D_matrix)
         return D_array
@@ -234,10 +230,10 @@ class inputTransform:
         N_array_extend[:-1] = -N_array
 
         # Add the new element to the last position in the new ndarray
-        N_array_extend[-1] = -self.exterior_inport
+        N_array_extend[-1] = -self.exterior_import
         return N_array_extend
 
-    # coefficients b array !!!!!
+    # coefficients array b
     def combine_constraints(self):
         combine_constraints = np.hstack(
             (inputTransform.embankment_constraints_on_pavedArea(self), \
@@ -246,13 +242,15 @@ class inputTransform:
              ))
         return combine_constraints
 
+    # constraints array c
     def combine_objective(self):
         L_matrix = np.copy(self.L_matrix_refit())
         H_matrix = np.copy(self.H_matrix_refit())
         objective = L_matrix[:] * H_matrix[:]
-        combine_objective = np.hstack((objective,objective))
+        combine_objective = np.hstack((objective, objective))
         constraints_flat = [elem for row in combine_objective for elem in row]
         return np.array(constraints_flat, dtype=float)
+
 
 def dual_simplex(c, A, b):
     # Transform the problem to its dual
@@ -273,7 +271,7 @@ def dual_simplex(c, A, b):
         # Bland's rule for entering variable: Choose the first variable with a negative reduced cost
         pivot_col = np.where(tableau[-1, :-1] < 0)[0][0]
 
-        # #############for display only !!!!
+        # #############for display only !!!! potentially decrease efficiency when activated !!!
         # # Highlight Column
         # print(f'HIGHTLIGHT_PIVOT_COLUMN {pivot_col}')
         # highlight_col = pivot_col
@@ -297,7 +295,7 @@ def dual_simplex(c, A, b):
 
         pivot_row = valid_ratios[np.argmin(valid_ratios[:, 1]), 0].astype(int)
 
-        # #############for display only !!!!
+        # #############for display only !!!! potentially decrease efficiency when activated !!!
         # # Highlight Row
         # print(f'HIGHTLIGHT_PIVOT_ROW {pivot_row}')
         # highlight_row = pivot_row
@@ -312,7 +310,7 @@ def dual_simplex(c, A, b):
         #     print("[" + "".join(row_str) + "]")
         # #############
 
-        # #############for display only !!!!
+        # #############for display only !!!! potentially decrease efficiency when activated !!!
         # # Highlight Element
         # print(f'HIGHTLIGHT_PIVOT_ELEMENT {tableau[pivot_row, pivot_col]}')
         # highlight_element = (pivot_row, pivot_col)
@@ -333,7 +331,7 @@ def dual_simplex(c, A, b):
 
         tableau[pivot_row] /= tableau[pivot_row, pivot_col]
 
-        # #############for display only !!!!
+        # #############for display only !!!! potentially decrease efficiency when activated !!!
         # # Highlight Row
         # print(f'HIGHTLIGHT_REFITED_PIVOT_ROW {pivot_row}')
         # highlight_row = pivot_row
@@ -352,7 +350,7 @@ def dual_simplex(c, A, b):
             if (i != pivot_row and tableau[i, pivot_col] != 0):
                 print(f'refit row {i} ====> ')
 
-                # #############for display only !!!!
+                # #############for display only !!!! potentially decrease efficiency when activated !!!
                 # # Highlight Row
                 # print(f'HIGHTLIGHT_ROW {i} _TO_FIT_PIVOT_ROW {pivot_row}')
                 # highlight_row = pivot_row
@@ -373,7 +371,7 @@ def dual_simplex(c, A, b):
 
                 tableau[i] -= tableau[pivot_row] * tableau[i, pivot_col]
 
-                # ############for display only !!!!
+                # ############for display only !!!! potentially decrease efficiency when activated !!!
                 # # Highlight Row
                 # print(f'HIGHTLIGHT_ROW {i} _TO_FIT_PIVOT_ROW {pivot_row}')
                 # highlight_row = pivot_row
@@ -398,19 +396,20 @@ def dual_simplex(c, A, b):
     optimal_value = solution_row[-1]
     var_index_init = len(A_dual[0])
     # default set slack varibales connected to excavation inequality constraints and exterior input inequality constraints
-    slack_num = int((var_index_init-1)/3) + 1
+    slack_num = int((var_index_init - 1) / 3) + 1
     print('var_index_init', var_index_init)
     print('slack num', slack_num)
-    solution = solution_row[var_index_init : -slack_num-1]
+    solution = solution_row[var_index_init: -slack_num - 1]
     return optimal_value, solution
 
-#create instance
+
+# create instance
 my_instance = inputTransform()
 
-#get_num_of_create instance
+# get_num_of_create instance
 num_of_instance = len(my_instance.P_coefficient_matrix())
 
-#load data from instance
+# load data from instance
 c = my_instance.combine_objective()
 A = my_instance.combine_constraints_coefficients()
 
@@ -418,9 +417,9 @@ A = my_instance.combine_constraints_coefficients()
 slack_variables_matrix = np.eye(A.shape[0])
 
 for i in range(len(A)):
-    if (i >= (num_of_instance-1)*2):
+    if (i >= (num_of_instance - 1) * 2):
         slack_variables_matrix[i] = slack_variables_matrix[i] * (-1)
-slack_variables_matrix = slack_variables_matrix[:,(num_of_instance-1)*2 :]
+slack_variables_matrix = slack_variables_matrix[:, (num_of_instance - 1) * 2:]
 
 # expand A matrix
 A = np.hstack((A, slack_variables_matrix))
@@ -433,18 +432,18 @@ c = np.hstack((c, slack_variables_coefficients))
 
 b = my_instance.combine_constraints()
 
-#output
+# output
 optimal_value, solution = dual_simplex(c, A, b)
 print("Optimal value:", optimal_value)
 
-solution_reshape = solution.reshape(num_of_instance,(num_of_instance-1)*2 )
+solution_reshape = solution.reshape(num_of_instance, (num_of_instance - 1) * 2)
 print(f"Solution: \n {solution_reshape}")
 np.savetxt(r"D:\testSample_autoDistribution\solution.csv", solution_reshape, delimiter=",")
 
-paved_solution = solution_reshape[:, :num_of_instance-1]
+paved_solution = solution_reshape[:, :num_of_instance - 1]
 print(f"Paved_Solution: \n {paved_solution}")
 np.savetxt(r"D:\testSample_autoDistribution\paved_solution.csv", paved_solution, delimiter=",")
 
-unpaved_solution = solution_reshape[:, num_of_instance-1:]
+unpaved_solution = solution_reshape[:, num_of_instance - 1:]
 print(f"unPaved_Solution: \n {unpaved_solution}")
 np.savetxt(r"D:\testSample_autoDistribution\unpaved_solution.csv", unpaved_solution, delimiter=",")
