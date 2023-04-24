@@ -26,15 +26,15 @@ class inputTransform:
         # 挖方N矩阵
         self.path_N = r'D:\testSample_autoDistribution\N_array.csv'
         # 外借土方土基区填挖比phi_0参数
-        self.phi_0 = 0.85
+        self.phi_0 = 0.9
         # 外借土方土面区填挖比theta_0参数
-        self.theta_0 = 0.88
+        self.theta_0 = 0.9
         # 地基处理子项位于第几行
-        self.earth_treatment_index = []
+        self.earth_treatment_index = [4,11,18,25,32,39,46]
         # 不得外借土方的标段
         self.prohibited_section = []
         # 设置借方(尽可能设置大值)
-        self.exterior_inport = 10000
+        self.exterior_inport = 10000000
 
         with open(self.path_L, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
@@ -246,34 +246,13 @@ class inputTransform:
              ))
         return combine_constraints
 
-    def objective_embankment_on_pavedArea(self):
-        L_matrix = np.copy(self.L_matrix_refit())
-        H_matrix = np.copy(self.H_matrix_refit())
-        objective_embankment_on_pavedArea = L_matrix[:-1] * H_matrix[:-1]
-        constraints_flat = [elem for row in objective_embankment_on_pavedArea for elem in row]
-        return np.array(constraints_flat, dtype=float)
-
-    def objective_embankment_on_unPavedArea(self):
-        L_matrix = np.copy(self.L_matrix_refit())
-        H_matrix = np.copy(self.H_matrix_refit())
-        objective_embankment_on_pavedArea = L_matrix[:-1] * H_matrix[:-1]
-        constraints_flat = [elem for row in objective_embankment_on_pavedArea for elem in row]
-        return np.array(constraints_flat, dtype=float)
-
-    def objective_embankment_source_exterior(self):
-        L_matrix = np.copy(self.L_matrix_refit())
-        H_matrix = np.copy(self.H_matrix_refit())
-        objective_embankment_source_exterior = L_matrix[-1] * H_matrix[-1]
-        return objective_embankment_source_exterior
-
     def combine_objective(self):
-        combine_objective = np.hstack((inputTransform.objective_embankment_on_pavedArea(self),
-                                       inputTransform.objective_embankment_on_unPavedArea(self),
-                                       inputTransform.objective_embankment_source_exterior(self),
-                                       inputTransform.objective_embankment_source_exterior(self),
-                                       ))
-        return combine_objective
-
+        L_matrix = np.copy(self.L_matrix_refit())
+        H_matrix = np.copy(self.H_matrix_refit())
+        objective = L_matrix[:] * H_matrix[:]
+        combine_objective = np.hstack((objective,objective))
+        constraints_flat = [elem for row in combine_objective for elem in row]
+        return np.array(constraints_flat, dtype=float)
 
 def dual_simplex(c, A, b):
     # Transform the problem to its dual
@@ -434,7 +413,7 @@ num_of_instance = len(my_instance.P_coefficient_matrix())
 #load data from instance
 c = my_instance.combine_objective()
 A = my_instance.combine_constraints_coefficients()
-print('check C', c)
+
 # introduce slack_variables
 slack_variables_matrix = np.eye(A.shape[0])
 
@@ -447,9 +426,7 @@ slack_variables_matrix = slack_variables_matrix[:,(num_of_instance-1)*2 :]
 A = np.hstack((A, slack_variables_matrix))
 
 # introduce slack variables coefficients of zeros
-slack_variables_coefficients = np.ones((len(slack_variables_matrix[0]),))*40
-# set coefficient for slack variable of exterior source as 0
-slack_variables_coefficients[-1] = 0
+slack_variables_coefficients = np.zeros((len(slack_variables_matrix[0]),))
 
 # expand c array
 c = np.hstack((c, slack_variables_coefficients))
