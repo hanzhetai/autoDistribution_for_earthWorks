@@ -25,6 +25,10 @@ class inputTransform:
         self.path_D = r'D:\testSample_autoDistribution\D_array.csv'
         # N_array, represents the excavation quantity of earthworks for each section
         self.path_N = r'D:\testSample_autoDistribution\N_array.csv'
+        # prior_distribute_array, represents the priority of sections to distribute earthworks, lower value means higher priority
+        self.path_prior_distribute_array = r'D:\testSample_autoDistribution\prior_distribute_array.csv'
+        # prior_receive_array, represents the priority of sections to receive earthworks, lower value means higher priority
+        self.path_prior_receive_array = r'D:\testSample_autoDistribution\prior_distribute_array.csv'
         # theta_0 factor, represents the fill/cut factor in paved area when using exterior earthworks
         self.phi_0 = 0.9
         # theta_0 factor, represents the fill/cut factor in unpaved area when using exterior earthworks
@@ -80,6 +84,16 @@ class inputTransform:
         with open(self.path_N, encoding='utf-8-sig') as f:
             tmp = np.loadtxt(f, str, delimiter=",")
             self.N_matrix = tmp[0:].astype(np.float64)
+
+        # 加载分配优先矩阵 (prior_distribute_array)
+        with open(self.path_prior_distribute_array, encoding='utf-8-sig') as f:
+            tmp = np.loadtxt(f, str, delimiter=",")
+            self.prior_distribute_array = tmp[0:].astype(np.float64)
+
+        # 加载分配优先矩阵 (prior_receive_array)
+        with open(self.path_prior_receive_array, encoding='utf-8-sig') as f:
+            tmp = np.loadtxt(f, str, delimiter=",")
+            self.prior_receive_array = tmp[0:].astype(np.float64)
 
         # 依照L的长度判断分区数量
         self.sec_num = len(self.L_matrix.tolist())
@@ -246,7 +260,17 @@ class inputTransform:
     def combine_objective(self):
         L_matrix = np.copy(self.L_matrix_refit())
         H_matrix = np.copy(self.H_matrix_refit())
-        objective = L_matrix[:] * H_matrix[:]
+
+        prior_distribute_array = np.copy(self.prior_distribute_array)
+        update_distribute_row = np.ones((1, prior_distribute_array.shape[1]))
+
+        prior_distribute_array_expand = np.vstack((prior_distribute_array, update_distribute_row))
+
+        prior_receive_array = np.copy(self.prior_receive_array)
+        update_receive_row = np.ones((1, prior_receive_array.shape[1]))
+        prior_receive_array_expand = np.vstack((prior_receive_array, update_receive_row))
+
+        objective = L_matrix[:] * H_matrix[:] * prior_distribute_array_expand[:] * prior_receive_array_expand[:]
         combine_objective = np.hstack((objective, objective))
         constraints_flat = [elem for row in combine_objective for elem in row]
         return np.array(constraints_flat, dtype=float)
